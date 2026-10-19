@@ -1,130 +1,67 @@
 <!DOCTYPE html>
 <html lang="en-us">
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Unity WebGL Player</title>
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      background: #000;      /* letterbox / pillarbox bars */
-      overflow: hidden;
-    }
-    /* Container is sized and centered by JS to stay 16:9 */
-    #unity-container {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-    }
-    #unity-canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-      background: #231F20;
-    }
-    #unity-loading-bar {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      width: 40%;
-      display: none;
-    }
-    #unity-progress-bar-empty {
-      width: 100%;
-      height: 12px;
-      background: #333;
-      border-radius: 6px;
-      overflow: hidden;
-    }
-    #unity-progress-bar-full {
-      width: 0%;
-      height: 100%;
-      background: #fff;
-    }
-  </style>
-</head>
-<body>
-  <div id="unity-container">
-    <canvas id="unity-canvas" tabindex="-1"></canvas>
-    <div id="unity-loading-bar">
-      <div id="unity-progress-bar-empty">
-        <div id="unity-progress-bar-full"></div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // ---------- 16:9 enforcement ----------
-    const ASPECT_W = 16;
-    const ASPECT_H = 9;
-    const container = document.getElementById("unity-container");
-
-    function resizeToAspect() {
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const targetRatio = ASPECT_W / ASPECT_H;
-
-      let w, h;
-      if (vw / vh > targetRatio) {
-        // Window is wider than 16:9 -> pillarbox (bars left/right)
-        h = vh;
-        w = Math.floor(vh * targetRatio);
-      } else {
-        // Window is taller than 16:9 -> letterbox (bars top/bottom)
-        w = vw;
-        h = Math.floor(vw / targetRatio);
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes">
+    <title>Spider Game</title>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: #000;
+        overflow: hidden;
       }
+      #unity-frame {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100vw;
+        height: 100vh;
+      }
+      #unity-canvas {
+        aspect-ratio: 16 / 9;
+        width: min(100vw, 177.78vh);
+        height: min(100vh, 56.25vw);
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="unity-frame">
+      <canvas id="unity-canvas" tabindex="-1"></canvas>
+    </div>
+    <script>
+      var canvas = document.querySelector("#unity-canvas");
 
-      container.style.width = w + "px";
-      container.style.height = h + "px";
-    }
+      // Change these two values if your build output is named differently.
+      var buildUrl = "Build";
+      var buildName = "spider-game";
 
-    window.addEventListener("resize", resizeToAspect);
-    window.addEventListener("orientationchange", resizeToAspect);
-    document.addEventListener("fullscreenchange", resizeToAspect);
-    resizeToAspect();
+      // Spaces in file names must be URL-encoded.
+      var loaderUrl = buildUrl + "/" + encodeURIComponent(buildName) + ".loader.js";
+      var config = {
+        dataUrl: buildUrl + "/" + encodeURIComponent(buildName) + ".data",
+        frameworkUrl: buildUrl + "/" + encodeURIComponent(buildName) + ".framework.js",
+        codeUrl: buildUrl + "/" + encodeURIComponent(buildName) + ".wasm",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "pizzaWizardGames",
+        productName: "Pizza Wizard",
+        productVersion: "0.5",
+      };
 
-    // ---------- Unity loader ----------
-    // Change "spider-game" to match the filenames in your Build folder.
-    const buildUrl = "Build";
-    const loaderUrl = buildUrl + "/spider-game.loader.js";
-    const config = {
-      dataUrl: buildUrl + "/spider-game.data",       // add .unityweb / .gz / .br if your build uses it
-      frameworkUrl: buildUrl + "/spider-game.framework.js",
-      codeUrl: buildUrl + "/spider-game.wasm",
-      streamingAssetsUrl: "StreamingAssets",
-      companyName: "YourCompany",
-      productName: "spider-game",
-      productVersion: "1.0",
-      devicePixelRatio: window.devicePixelRatio || 1
-    };
-
-    const canvas = document.getElementById("unity-canvas");
-    const loadingBar = document.getElementById("unity-loading-bar");
-    const progressBarFull = document.getElementById("unity-progress-bar-full");
-    loadingBar.style.display = "block";
-
-    const script = document.createElement("script");
-    script.src = loaderUrl;
-    script.onload = () => {
-      createUnityInstance(canvas, config, (progress) => {
-        progressBarFull.style.width = (100 * progress) + "%";
-      }).then((unityInstance) => {
-        loadingBar.style.display = "none";
-        resizeToAspect();
-        // Keep the 16:9 box in fullscreen too: fullscreen the wrapper, not the canvas
-        window.unityInstance = unityInstance;
-      }).catch((message) => {
-        alert(message);
-      });
-    };
-    document.body.appendChild(script);
-  </script>
-</body>
+      var script = document.createElement("script");
+      script.src = loaderUrl;
+      script.onload = () => {
+        createUnityInstance(canvas, config).catch((message) => {
+          alert(message);
+        });
+      };
+      script.onerror = () => {
+        alert("Could not load " + loaderUrl + ". Check that the Build folder and file names match.");
+      };
+      document.body.appendChild(script);
+    </script>
+  </body>
 </html>
